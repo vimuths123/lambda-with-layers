@@ -10,7 +10,7 @@ const app = express();
 // Tell ffmpeg where to find the binary in Lambda
 ffmpeg.setFfmpegPath("/opt/bin/ffmpeg");
 
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Use /tmp for Lambda
 const upload = multer({ dest: "/tmp/" });
