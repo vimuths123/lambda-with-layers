@@ -28,6 +28,7 @@ app.post("/thumbnail", upload.single("video"), (req, res) => {
       size: "320x180"
     })
     .on("end", () => {
+      res.setHeader("Content-Type", "image/png"); // ← added
       res.sendFile(thumbnailPath, () => {
         fs.unlinkSync(videoPath);
         fs.unlinkSync(thumbnailPath);
