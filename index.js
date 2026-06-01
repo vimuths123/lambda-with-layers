@@ -1,36 +1,36 @@
 const express = require("express");
-const multer = require("multer");
-const ffmpeg = require("fluent-ffmpeg");
+const multer  = require("multer");
+const ffmpeg  = require("fluent-ffmpeg");
 const serverless = require("serverless-http");
-const path = require("path");
-const fs = require("fs");
+const path    = require("path");
+const fs      = require("fs");
 
 const app = express();
 
-// Tell ffmpeg where to find the binary in Lambda
-ffmpeg.setFfmpegPath("/opt/bin/ffmpeg");
+// Only set ffmpeg path on Lambda
+if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  ffmpeg.setFfmpegPath("/opt/bin/ffmpeg");
+}
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// Use /tmp for Lambda
-const upload = multer({ dest: "/tmp/" });
+// Use /tmp for Lambda, temp/ for local
+const tmpDir = process.env.AWS_LAMBDA_FUNCTION_NAME ? "/tmp" : "temp";
+const upload = multer({ dest: tmpDir + "/" });
 
 app.post("/thumbnail", upload.single("video"), (req, res) => {
 
-  const videoPath = req.file.path;
-  const thumbnailPath = `/tmp/thumb_${Date.now()}.png`;
+  const videoPath     = req.file.path;
+  const thumbnailPath = `${tmpDir}/thumb_${Date.now()}.png`;
 
   ffmpeg(videoPath)
     .screenshots({
       timestamps: [1],
       filename: path.basename(thumbnailPath),
-      folder: "/tmp",
+      folder: tmpDir,
       size: "320x180"
     })
     .on("end", () => {
-      console.log("ffmpeg done, thumbnail path:", thumbnailPath);
-      console.log("file exists?", fs.existsSync(thumbnailPath));
-
       const imageBuffer = fs.readFileSync(thumbnailPath);
       const base64Image = imageBuffer.toString("base64");
 
@@ -39,12 +39,12 @@ app.post("/thumbnail", upload.single("video"), (req, res) => {
       console.log("Temp files deleted ✅");
 
       res.send(`
-    <html>
-      <body style="background:black; display:flex; justify-content:center; align-items:center; height:100vh;">
-        <img src="data:image/png;base64,${base64Image}" />
-      </body>
-    </html>
-  `);
+        <html>
+          <body style="background:black; display:flex; justify-content:center; align-items:center; height:100vh;">
+            <img src="data:image/png;base64,${base64Image}" />
+          </body>
+        </html>
+      `);
     })
     .on("error", (err) => {
       console.log("ffmpeg error:", err.message);
