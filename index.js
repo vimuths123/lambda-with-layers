@@ -7,38 +7,34 @@ const fs      = require("fs");
 
 const app = express();
 
+// Tell ffmpeg where to find the binary in Lambda
+ffmpeg.setFfmpegPath("/opt/bin/ffmpeg");
+
 app.use(express.static("public"));
 
-// Save uploaded video to temp folder
-const upload = multer({ dest: "temp/" });
+// Use /tmp for Lambda
+const upload = multer({ dest: "/tmp/" });
 
 app.post("/thumbnail", upload.single("video"), (req, res) => {
 
-  const videoPath     = req.file.path;                        // uploaded video
-  const thumbnailPath = `temp/thumb_${Date.now()}.png`;      // thumbnail path
+  const videoPath     = req.file.path;
+  const thumbnailPath = `/tmp/thumb_${Date.now()}.png`;
 
   ffmpeg(videoPath)
     .screenshots({
       timestamps: [1],
       filename: path.basename(thumbnailPath),
-      folder: "temp",
+      folder: "/tmp",
       size: "320x180"
     })
     .on("end", () => {
-
-      // Send thumbnail to user
-      res.sendFile(path.resolve(thumbnailPath), () => {
-
-        // After sending, delete both files
+      res.sendFile(thumbnailPath, () => {
         fs.unlinkSync(videoPath);
         fs.unlinkSync(thumbnailPath);
         console.log("Temp files deleted ✅");
-
       });
-
     })
     .on("error", (err) => {
-      // Cleanup on error too
       fs.unlinkSync(videoPath);
       res.status(500).send("Error: " + err.message);
     });
