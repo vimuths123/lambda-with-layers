@@ -28,15 +28,22 @@ app.post("/thumbnail", upload.single("video"), (req, res) => {
       size: "320x180"
     })
     .on("end", () => {
-      res.setHeader("Content-Type", "image/png"); // ← added
-      res.sendFile(thumbnailPath, () => {
-        fs.unlinkSync(videoPath);
-        fs.unlinkSync(thumbnailPath);
+      console.log("ffmpeg done, thumbnail path:", thumbnailPath);
+      console.log("file exists?", fs.existsSync(thumbnailPath));
+
+      res.setHeader("Content-Type", "image/png");
+      res.sendFile(thumbnailPath, (err) => {
+        if (err) {
+          console.log("sendFile error:", err);
+        }
+        if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+        if (fs.existsSync(thumbnailPath)) fs.unlinkSync(thumbnailPath);
         console.log("Temp files deleted ✅");
       });
     })
     .on("error", (err) => {
-      fs.unlinkSync(videoPath);
+      console.log("ffmpeg error:", err.message);
+      if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
       res.status(500).send("Error: " + err.message);
     });
 
