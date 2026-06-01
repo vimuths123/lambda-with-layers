@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Thumbnail Generator</title>
+</head>
+<body>
+  <h2>Upload a video to get a thumbnail</h2>
+
+  <form action="/thumbnail" method="POST" enctype="multipart/form-data">
+    <input type="file" name="video" accept="video/*" />
+    <button type="submit">Generate Thumbnail</button>
+  </form>
+
+</body>
+</html>
