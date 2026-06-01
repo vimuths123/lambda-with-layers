@@ -1,9 +1,9 @@
 const express = require("express");
-const multer  = require("multer");
-const ffmpeg  = require("fluent-ffmpeg");
+const multer = require("multer");
+const ffmpeg = require("fluent-ffmpeg");
 const serverless = require("serverless-http");
-const path    = require("path");
-const fs      = require("fs");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 
@@ -17,7 +17,7 @@ const upload = multer({ dest: "/tmp/" });
 
 app.post("/thumbnail", upload.single("video"), (req, res) => {
 
-  const videoPath     = req.file.path;
+  const videoPath = req.file.path;
   const thumbnailPath = `/tmp/thumb_${Date.now()}.png`;
 
   ffmpeg(videoPath)
@@ -31,15 +31,20 @@ app.post("/thumbnail", upload.single("video"), (req, res) => {
       console.log("ffmpeg done, thumbnail path:", thumbnailPath);
       console.log("file exists?", fs.existsSync(thumbnailPath));
 
-      res.setHeader("Content-Type", "image/png");
-      res.sendFile(thumbnailPath, (err) => {
-        if (err) {
-          console.log("sendFile error:", err);
-        }
-        if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
-        if (fs.existsSync(thumbnailPath)) fs.unlinkSync(thumbnailPath);
-        console.log("Temp files deleted ✅");
-      });
+      const imageBuffer = fs.readFileSync(thumbnailPath);
+      const base64Image = imageBuffer.toString("base64");
+
+      if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+      if (fs.existsSync(thumbnailPath)) fs.unlinkSync(thumbnailPath);
+      console.log("Temp files deleted ✅");
+
+      res.send(`
+    <html>
+      <body style="background:black; display:flex; justify-content:center; align-items:center; height:100vh;">
+        <img src="data:image/png;base64,${base64Image}" />
+      </body>
+    </html>
+  `);
     })
     .on("error", (err) => {
       console.log("ffmpeg error:", err.message);
